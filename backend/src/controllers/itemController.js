@@ -1,22 +1,25 @@
-import prisma from '../prisma/client.js'
+import prisma from '../config/db.js'
+import { generateCustomId } from '../utils/customIdGenerator.js'
 
-export const getItems = async (req, res) => {
+export async function getAllItems(req, res) {
   try {
-    const items = await prisma.item.findMany({ include: { createdBy: true, inventory: true } })
+    const items = await prisma.item.findMany()
     res.json(items)
   } catch (err) {
-    res.status(400).json({ error: err.message })
+    res.status(500).json({ message: 'Failed to fetch items', error: err.message })
   }
 }
 
-export const createItem = async (req, res) => {
+export async function createItem(req, res) {
+  const { name, quantity, inventoryId } = req.body
+  if (!name || !quantity || !inventoryId) return res.status(400).json({ message: 'All fields required' })
+
   try {
-    const { inventoryId, customId, data, createdById } = req.body
     const item = await prisma.item.create({
-      data: { inventoryId, customId, data, createdById }
+      data: { id: generateCustomId('ITM'), name, quantity: Number(quantity), inventoryId }
     })
-    res.json(item)
+    res.status(201).json(item)
   } catch (err) {
-    res.status(400).json({ error: err.message })
+    res.status(500).json({ message: 'Failed to create item', error: err.message })
   }
 }

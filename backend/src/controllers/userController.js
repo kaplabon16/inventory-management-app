@@ -1,30 +1,21 @@
-import prisma from '../prisma/client.js'
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import prisma from '../config/db.js'
 
-export const registerUser = async (req, res) => {
+export async function getAllUsers(req, res) {
   try {
-    const { name, email, password } = req.body
-    const hashedPassword = await bcrypt.hash(password, 10)
-    const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword }
-    })
-    res.json(user)
+    const users = await prisma.user.findMany()
+    res.json(users)
   } catch (err) {
-    res.status(400).json({ error: err.message })
+    res.status(500).json({ message: 'Failed to fetch users', error: err.message })
   }
 }
 
-export const loginUser = async (req, res) => {
+export async function getUserById(req, res) {
+  const { id } = req.params
   try {
-    const { email, password } = req.body
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) return res.status(404).json({ error: 'User not found' })
-    const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' })
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' })
-    res.json({ token })
+    const user = await prisma.user.findUnique({ where: { id: Number(id) } })
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    res.json(user)
   } catch (err) {
-    res.status(400).json({ error: err.message })
+    res.status(500).json({ message: 'Failed to fetch user', error: err.message })
   }
 }

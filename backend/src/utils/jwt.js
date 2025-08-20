@@ -1,15 +1,8 @@
-import jwt from "jsonwebtoken"
-import dotenv from "dotenv"
-dotenv.config()
+// backend/src/utils/jwt.js
+import jwt from 'jsonwebtoken'
 
-export const generateToken = (user) => {
-  return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  )
+const generateToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' })
 }
 
-export const verifyToken = (token) => {
-  return jwt.verify(token, process.env.JWT_SECRET)
-}
+export default generateToken

@@ -1,9 +1,10 @@
 import express from 'express'
-import { getItems, createItem } from '../controllers/itemController.js'
+import { getAllItems, createItem } from '../controllers/itemController.js'
+import { authenticateToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-router.get('/', getItems)
-router.post('/', createItem)
+router.get('/', authenticateToken, getAllItems)
+router.post('/', authenticateToken, createItem)
 
 export default router
