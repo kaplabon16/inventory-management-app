@@ -8,49 +8,66 @@ datasource db {
 }
 
 model User {
-  id         Int         @id @default(autoincrement())
-  name       String
-  email      String      @unique
-  password   String
-  isAdmin    Boolean     @default(false)
-  isBlocked  Boolean     @default(false)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-
-  inventories Inventory[]  @relation("InventoryCreator")
-  items       Item[]       @relation("ItemCreator")
+  id          Int         @id @default(autoincrement())
+  email       String      @unique
+  name        String?
+  password    String?
+  googleId    String?     @unique
+  githubId    String?     @unique
+  isAdmin     Boolean     @default(false)
+  blocked     Boolean     @default(false)
+  theme       String?     @default("light")
+  language    String?     @default("en")
+  inventories Inventory[]
+  items       Item[]
+  posts       Post[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Inventory {
-  id          Int       @id @default(autoincrement())
-  customId    String
-  title       String
-  description String?
-  isPublic    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             Int      @id @default(autoincrement())
+  title          String
+  description    String?
+  category       String
+  public         Boolean  @default(false)
+  ownerId        Int
+  owner          User     @relation(fields: [ownerId], references: [id])
+  items          Item[]
+  customFields   Json?
+  customIdFormat Json?
+  tags           Json?
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  posts          Post[]
 
-  createdBy   Int
-  creator     User      @relation("InventoryCreator", fields: [createdBy], references: [id])
-
-  items       Item[]
-
-  @@unique([id, customId])
+  @@index([ownerId])
 }
 
 model Item {
   id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  createdById Int
+  createdBy   User      @relation(fields: [createdById], references: [id])
   customId    String
-  name        String
-  fields      Json      // store custom fields as JSON
+  fields      Json?
+  likes       Int       @default(0)
+  version     Int       @default(1)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  @@unique([inventoryId, customId]) // Enforces unique customId per inventory
+  @@index([inventoryId])
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
   inventoryId Int
   inventory   Inventory @relation(fields: [inventoryId], references: [id])
-
-  createdBy   Int
-  creator     User      @relation("ItemCreator", fields: [createdBy], references: [id])
-
-  @@unique([inventoryId, customId])
+  authorId    Int
+  author      User      @relation(fields: [authorId], references: [id])
+  content     String
+  createdAt   DateTime  @default(now())
 }

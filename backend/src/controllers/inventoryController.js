@@ -1,21 +1,50 @@
-import prisma from '../config/db.js'
+import prisma from '../prisma/client.js'
 import { generateCustomId } from '../utils/customIdGenerator.js'
 
-export const getInventories = async (req, res) => {
-  const inventories = await prisma.inventory.findMany()
-  res.json(inventories)
+export async function createInventory(req,res){
+  const {title,description,category,publicAccess,tags,customFields,customIdFormat} = req.body
+  const inventory = await prisma.inventory.create({
+    data:{
+      title,description,category,public:publicAccess,
+      ownerId:req.user.id,
+      tags,
+      customFields,
+      customIdFormat
+    }
+  })
+  res.json(inventory)
 }
 
-export const createInventory = async (req, res) => {
-  const { title, description, isPublic } = req.body
-  const inventory = await prisma.inventory.create({
-    data: {
-      title,
-      description,
-      isPublic: !!isPublic,
-      createdBy: req.user.id,
-      customId: generateCustomId(),
-    },
+export async function updateInventory(req,res){
+  const { id } = req.params
+  const { title,description,category,publicAccess,tags,customFields,customIdFormat,version } = req.body
+  const inventory = await prisma.inventory.updateMany({
+    where:{ id:parseInt(id), version },
+    data:{
+      title,description,category,public:publicAccess,
+      tags,customFields,customIdFormat,
+      version:{ increment:1 }
+    }
   })
-  res.status(201).json(inventory)
+  if(inventory.count === 0) return res.status(409).json({ message:'Conflict, version mismatch'})
+  res.json({ message:'Updated' })
+}
+
+export async function getInventory(req,res){
+  const { id } = req.params
+  const inventory = await prisma.inventory.findUnique({ where:{id:parseInt(id)}, include:{items:true} })
+  res.json(inventory)
+}
+
+export async function searchInventory(req,res){
+  const { q } = req.query
+  const inventories = await prisma.inventory.findMany({
+    where:{
+      OR:[
+        { title:{ contains:q, mode:'insensitive' } },
+        { description:{ contains:q, mode:'insensitive' } }
+      ]
+    }
+  })
+  res.json(inventories)
 }

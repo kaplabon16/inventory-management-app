@@ -1,49 +1,30 @@
-import prisma from '../config/db.js'
+import prisma from '../prisma/client.js'
 
-export const getUsers = async (req, res) => {
-  const users = await prisma.user.findMany()
+export async function getUsers(req,res){
+  const users = await prisma.user.findMany({ select:{id,name,email,isAdmin,blocked} })
   res.json(users)
 }
 
-export const getUser = async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(req.params.id) },
-  })
-  if (!user) {
-    res.status(404)
-    throw new Error('User not found')
-  }
+export async function blockUser(req,res){
+  const { id } = req.params
+  const user = await prisma.user.update({ where:{id:parseInt(id)}, data:{blocked:true} })
   res.json(user)
 }
 
-export const blockUser = async (req, res) => {
+export async function unblockUser(req,res){
   const { id } = req.params
-  const user = await prisma.user.update({
-    where: { id: parseInt(id) },
-    data: { isBlocked: true },
-  })
+  const user = await prisma.user.update({ where:{id:parseInt(id)}, data:{blocked:false} })
   res.json(user)
 }
 
-export const unblockUser = async (req, res) => {
+export async function makeAdmin(req,res){
   const { id } = req.params
-  const user = await prisma.user.update({
-    where: { id: parseInt(id) },
-    data: { isBlocked: false },
-  })
+  const user = await prisma.user.update({ where:{id:parseInt(id)}, data:{isAdmin:true} })
   res.json(user)
 }
 
-export const toggleAdmin = async (req, res) => {
+export async function removeAdmin(req,res){
   const { id } = req.params
-  const user = await prisma.user.findUnique({ where: { id: parseInt(id) } })
-  if (!user) {
-    res.status(404)
-    throw new Error('User not found')
-  }
-  const updatedUser = await prisma.user.update({
-    where: { id: parseInt(id) },
-    data: { isAdmin: !user.isAdmin },
-  })
-  res.json(updatedUser)
+  const user = await prisma.user.update({ where:{id:parseInt(id)}, data:{isAdmin:false} })
+  res.json(user)
 }
