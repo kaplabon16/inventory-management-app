@@ -1,13 +1,13 @@
-const express = require('express')
+import express from 'express'
+import { getUsers, getUser, blockUser, unblockUser, toggleAdmin } from '../controllers/userController.js'
+import { protect, admin } from '../middleware/authMiddleware.js'
+
 const router = express.Router()
-const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware')
-const { getAllUsers, blockUser, unblockUser, deleteUser, toggleAdmin } = require('../controllers/userController')
 
-router.use(authMiddleware)
-router.get('/', adminMiddleware, getAllUsers)
-router.patch('/:id/block', adminMiddleware, blockUser)
-router.patch('/:id/unblock', adminMiddleware, unblockUser)
-router.delete('/:id', adminMiddleware, deleteUser)
-router.patch('/:id/toggle-admin', adminMiddleware, toggleAdmin)
+router.get('/', protect, admin, getUsers)
+router.get('/:id', protect, getUser)
+router.post('/block/:id', protect, admin, blockUser)
+router.post('/unblock/:id', protect, admin, unblockUser)
+router.post('/toggle-admin/:id', protect, admin, toggleAdmin)
 
-module.exports = router
+export default router

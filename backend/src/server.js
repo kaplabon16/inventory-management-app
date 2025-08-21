@@ -1,13 +1,18 @@
-const express = require('express')
-const cors = require('cors')
-require('dotenv').config()
-const authRoutes = require('./routes/authRoutes')
-const userRoutes = require('./routes/userRoutes')
-const inventoryRoutes = require('./routes/inventoryRoutes')
-const itemRoutes = require('./routes/itemRoutes')
-const errorHandler = require('./middleware/errorMiddleware')
+import express from 'express'
+import dotenv from 'dotenv'
+import cors from 'cors'
+
+import authRoutes from './routes/authRoutes.js'
+import userRoutes from './routes/userRoutes.js'
+import inventoryRoutes from './routes/inventoryRoutes.js'
+import itemRoutes from './routes/itemRoutes.js'
+
+import { errorHandler } from './middleware/errorMiddleware.js'
+
+dotenv.config()
 
 const app = express()
+
 app.use(cors())
 app.use(express.json())
 

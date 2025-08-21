@@ -1,22 +1,32 @@
-const jwt = require('jsonwebtoken')
-const prisma = require('../prisma/client')
+import jwt from 'jsonwebtoken'
+import prisma from '../config/db.js'
 
-const authMiddleware = async (req, res, next) => {
-  const authHeader = req.headers.authorization
-  if(!authHeader) return res.status(401).json({ message: 'No token provided' })
-  const token = authHeader.split(' ')[1]
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    const user = await prisma.user.findUnique({ where: { id: decoded.id }})
-    if(!user || user.blocked) return res.status(403).json({ message: 'User blocked or not found' })
-    req.user = user
+export const protect = async (req, res, next) => {
+  let token
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1]
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      req.user = await prisma.user.findUnique({ where: { id: decoded.id } })
+      next()
+    } catch (error) {
+      res.status(401)
+      throw new Error('Not authorized, token failed')
+    }
+  } else {
+    res.status(401)
+    throw new Error('Not authorized, no token')
+  }
+}
+
+export const admin = (req, res, next) => {
+  if (req.user && req.user.isAdmin) {
     next()
-  } catch(e) { return res.status(401).json({ message: 'Invalid token' }) }
+  } else {
+    res.status(403)
+    throw new Error('Admin privileges required')
+  }
 }
-
-const adminMiddleware = (req, res, next) => {
-  if(req.user.role !== 'admin') return res.status(403).json({ message: 'Admin only' })
-  next()
-}
-
-module.exports = { authMiddleware, adminMiddleware }
