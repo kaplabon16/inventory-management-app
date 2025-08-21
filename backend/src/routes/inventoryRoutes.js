@@ -1,10 +1,11 @@
-import express from 'express'
-import { getAllInventories, createInventory } from '../controllers/inventoryController.js'
-import { authenticateToken } from '../middleware/authMiddleware.js'
-
+const express = require('express')
 const router = express.Router()
+const { authMiddleware } = require('../middleware/authMiddleware')
+const { createInventory, getInventory, updateInventory, deleteInventory } = require('../controllers/inventoryController')
 
-router.get('/', authenticateToken, getAllInventories)
-router.post('/', authenticateToken, createInventory)
+router.post('/', authMiddleware, createInventory)
+router.get('/:id', getInventory)
+router.put('/:id', authMiddleware, updateInventory)
+router.delete('/:id', authMiddleware, deleteInventory)
 
-export default router
+module.exports = router

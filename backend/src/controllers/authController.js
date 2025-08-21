@@ -1,39 +1,27 @@
-import prisma from '../config/db.js'
-import jwt from 'jsonwebtoken'
-import bcrypt from 'bcrypt'
+const prisma = require('../prisma/client')
+const bcrypt = require('bcryptjs')
+const { generateToken } = require('../utils/jwt')
 
-export async function register(req, res) {
-  const { email, password, name } = req.body
-  if (!email || !password || !name) return res.status(400).json({ message: 'All fields required' })
-
+const register = async (req, res, next) => {
   try {
-    const existingUser = await prisma.user.findUnique({ where: { email } })
-    if (existingUser) return res.status(400).json({ message: 'User already exists' })
-
+    const { username, email, password } = req.body
     const hashedPassword = await bcrypt.hash(password, 10)
-    const user = await prisma.user.create({ data: { email, password: hashedPassword, name } })
-
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' })
-    res.status(201).json({ user, token })
-  } catch (err) {
-    res.status(500).json({ message: 'Registration failed', error: err.message })
-  }
+    const user = await prisma.user.create({ data: { username, email, password: hashedPassword }})
+    const token = generateToken(user)
+    res.json({ user, token })
+  } catch(e) { next(e) }
 }
 
-export async function login(req, res) {
-  const { email, password } = req.body
-  if (!email || !password) return res.status(400).json({ message: 'All fields required' })
-
+const login = async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) return res.status(404).json({ message: 'User not found' })
-
-    const valid = await bcrypt.compare(password, user.password)
-    if (!valid) return res.status(401).json({ message: 'Invalid credentials' })
-
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' })
-    res.status(200).json({ user, token })
-  } catch (err) {
-    res.status(500).json({ message: 'Login failed', error: err.message })
-  }
+    const { email, password } = req.body
+    const user = await prisma.user.findUnique({ where: { email }})
+    if(!user) return res.status(400).json({ message: 'Invalid credentials' })
+    const isMatch = await bcrypt.compare(password, user.password)
+    if(!isMatch) return res.status(400).json({ message: 'Invalid credentials' })
+    const token = generateToken(user)
+    res.json({ user, token })
+  } catch(e) { next(e) }
 }
+
+module.exports = { register, login }

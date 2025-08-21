@@ -1,16 +1,22 @@
-import jwt from 'jsonwebtoken'
+const jwt = require('jsonwebtoken')
+const prisma = require('../prisma/client')
 
-export function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization']
-  const token = authHeader && authHeader.split(' ')[1]
-
-  if (!token) return res.status(401).json({ message: 'Access Denied' })
-
+const authMiddleware = async (req, res, next) => {
+  const authHeader = req.headers.authorization
+  if(!authHeader) return res.status(401).json({ message: 'No token provided' })
+  const token = authHeader.split(' ')[1]
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET)
-    req.user = verified
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await prisma.user.findUnique({ where: { id: decoded.id }})
+    if(!user || user.blocked) return res.status(403).json({ message: 'User blocked or not found' })
+    req.user = user
     next()
-  } catch (err) {
-    res.status(403).json({ message: 'Invalid Token' })
-  }
+  } catch(e) { return res.status(401).json({ message: 'Invalid token' }) }
 }
+
+const adminMiddleware = (req, res, next) => {
+  if(req.user.role !== 'admin') return res.status(403).json({ message: 'Admin only' })
+  next()
+}
+
+module.exports = { authMiddleware, adminMiddleware }

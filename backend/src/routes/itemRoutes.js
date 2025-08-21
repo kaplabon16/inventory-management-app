@@ -1,10 +1,12 @@
-import express from 'express'
-import { getAllItems, createItem } from '../controllers/itemController.js'
-import { authenticateToken } from '../middleware/authMiddleware.js'
-
+const express = require('express')
 const router = express.Router()
+const { authMiddleware } = require('../middleware/authMiddleware')
+const { createItem, getItem, updateItem, deleteItem, likeItem } = require('../controllers/itemController')
 
-router.get('/', authenticateToken, getAllItems)
-router.post('/', authenticateToken, createItem)
+router.post('/', authMiddleware, createItem)
+router.get('/:id', getItem)
+router.put('/:id', authMiddleware, updateItem)
+router.delete('/:id', authMiddleware, deleteItem)
+router.post('/like', authMiddleware, likeItem)
 
-export default router
+module.exports = router
