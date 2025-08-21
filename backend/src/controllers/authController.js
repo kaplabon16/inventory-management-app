@@ -1,6 +1,6 @@
 import prisma from '../prisma/client.js'
 import { generateToken } from '../utils/jwt.js'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import passport from 'passport'
 
 export async function register(req,res){
