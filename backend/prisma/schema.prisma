@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,71 +9,118 @@ datasource db {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique
-  email        String    @unique
-  password     String
-  role         String    @default("user")
-  blocked      Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  inventories  Inventory[] @relation("creator")
-  items        Item[]    
-  likes        Like[]
+  id              Int               @id @default(autoincrement())
+  username        String            @unique
+  email           String            @unique
+  password        String
+  role            String            @default("user") // "user" or "admin"
+  blocked         Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  inventories     Inventory[]       @relation("creator")
+  items           Item[]
+  likes           Like[]
+  inventoryAccess InventoryAccess[] // back-relation to InventoryAccess
+  posts           Post[] // for discussion tab
 }
 
 model Inventory {
-  id           Int       @id @default(autoincrement())
-  title        String
-  description  String
-  category     String
-  isPublic     Boolean   @default(false)
-  creatorId    Int
-  creator      User      @relation("creator", fields: [creatorId], references: [id])
-  customFields Json
-  items        Item[]
-  accessList   InventoryAccess[]
-  tags         Tag[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  version      Int       @default(1)
-}
-
-model InventoryAccess {
-  id          Int       @id @default(autoincrement())
-  inventory   Inventory @relation(fields: [inventoryId], references: [id])
-  inventoryId Int
-  user        User      @relation(fields: [userId], references: [id])
-  userId      Int
+  id              Int               @id @default(autoincrement())
+  title           String
+  description     String
+  category        String
+  imageUrl        String? // optional illustration
+  isPublic        Boolean           @default(false)
+  customIdFormat  String? // JSON/string describing ID format
+  version         Int               @default(1) // for optimistic locking
+  creatorId       Int
+  creator         User              @relation("creator", fields: [creatorId], references: [id])
+  fields          CustomField[]
+  items           Item[]
+  inventoryAccess InventoryAccess[]
+  tags            Tag[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  posts           Post[]
 }
 
 model Item {
   id          Int       @id @default(autoincrement())
-  inventory   Inventory @relation(fields: [inventoryId], references: [id])
   inventoryId Int
-  customId    String
-  fields      Json
-  createdBy   User      @relation(fields: [createdById], references: [id])
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
   createdById Int
-  likes       Like[]
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  customId    String
+  version     Int       @default(1) // optimistic locking
+  singleText1 String?
+  singleText2 String?
+  singleText3 String?
+  multiText1  String?
+  multiText2  String?
+  multiText3  String?
+  numeric1    Float?
+  numeric2    Float?
+  numeric3    Float?
+  doc1        String?
+  doc2        String?
+  doc3        String?
+  boolean1    Boolean?
+  boolean2    Boolean?
+  boolean3    Boolean?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  version     Int       @default(1)
-  @@unique([inventoryId, customId])
+  likes       Like[]
+
+  @@unique([inventoryId, customId]) // enforce unique custom ID per inventory
+}
+
+model InventoryAccess {
+  id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([inventoryId, userId])
+}
+
+model CustomField {
+  id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  title       String
+  description String?
+  fieldType   String // "singleText", "multiText", "numeric", "document", "boolean", "select"
+  showInTable Boolean   @default(true)
+  order       Int // to allow drag-drop reorder
 }
 
 model Like {
-  id      Int    @id @default(autoincrement())
-  user    User   @relation(fields: [userId], references: [id])
-  userId  Int
-  item    Item   @relation(fields: [itemId], references: [id])
-  itemId  Int
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+  itemId Int
+  item   Item @relation(fields: [itemId], references: [id])
+
   @@unique([userId, itemId])
 }
 
 model Tag {
-  id          Int        @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
-  inventory   Inventory  @relation(fields: [inventoryId], references: [id])
   inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+  @@unique([name, inventoryId])
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
