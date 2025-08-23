@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 export default function Register(){
   const { registerLocal } = useAuth()
@@ -33,7 +33,7 @@ export default function Register(){
         {error && <div className="text-red-600">{error}</div>}
         <div className="mt-2 text-sm">
           Already have an account? 
-          <a href="/login" className="text-blue-600 underline ml-1">Login</a>
+          <Link to="/login" className="text-blue-600 underline ml-1">Login</Link>
         </div>
       </form>
     </div>
