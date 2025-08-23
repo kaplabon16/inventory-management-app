@@ -15,7 +15,11 @@ dotenv.config()
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server,{
-  cors:{ origin: process.env.FRONTEND_URL, methods:['GET','POST','PUT'] }
+  cors:{ origin: [
+    "http://localhost:5173", // for local dev
+    "https://inventory-management-app-pied-gamma.vercel.app" // your Vercel frontend
+  ], 
+    methods:['GET','POST','PUT'] }
 })
 
 app.use((req,res,next)=>{ req.io = io; next() })
