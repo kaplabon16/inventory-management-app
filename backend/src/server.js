@@ -1,73 +1,94 @@
 import express from "express"
 import session from "express-session"
 import passport from "passport"
-import { Strategy as GoogleStrategy } from "passport-google-oauth20"
 import dotenv from "dotenv"
 import cors from "cors"
+import http from "http"
+import { Server } from "socket.io"
+
+// Routes
+import authRoutes from "./routes/authRoutes.js"
+import userRoutes from "./routes/userRoutes.js"
+import inventoryRoutes from "./routes/inventoryRoutes.js"
+import itemRoutes from "./routes/itemRoutes.js"
+import { errorHandler } from "./middleware/errorMiddleware.js"
+
+// Passport strategies
+import "./config/passport.js"
 
 dotenv.config()
+
 const app = express()
+const server = http.createServer(app)
 
-// Middleware
+// ✅ Setup Socket.IO with CORS
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173", // dev
+      process.env.FRONTEND_URL  // vercel
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+  }
+})
+
+// ✅ Attach socket.io to req
+app.use((req, res, next) => {
+  req.io = io
+  next()
+})
+
+// ✅ Express middleware
 app.use(express.json())
-app.use(cors({
-  origin: process.env.FRONTEND_URL, // Vercel frontend
-  credentials: true
-}))
 
+// ✅ Session for Passport
 app.use(session({
-  secret: process.env.SESSION_SECRET || "secret",
+  secret: process.env.SESSION_SECRET || "supersecret",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production", // true on Railway
     sameSite: "lax"
   }
 }))
 
+// ✅ Passport init
 app.use(passport.initialize())
 app.use(passport.session())
 
-// Passport Google Strategy
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`
-}, (accessToken, refreshToken, profile, done) => {
-  // You should upsert user in NeonDB here
-  return done(null, profile)
+// ✅ CORS for API
+app.use(cors({
+  origin: [
+    "http://localhost:5173",   // dev
+    process.env.FRONTEND_URL   // vercel
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
 }))
 
-passport.serializeUser((user, done) => {
-  done(null, user)
-})
-passport.deserializeUser((obj, done) => {
-  done(null, obj)
-})
+// ✅ API Routes
+app.use("/api/auth", authRoutes)
+app.use("/api/users", userRoutes)
+app.use("/api/inventories", inventoryRoutes)
+app.use("/api/items", itemRoutes)
 
-// Routes
-app.get("/api/auth/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-)
+// ✅ Error handler
+app.use(errorHandler)
 
-app.get("/api/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  (req, res) => {
-    res.redirect(process.env.FRONTEND_URL) // redirect back to frontend
-  }
-)
-
-app.get("/api/auth/logout", (req, res) => {
-  req.logout(() => {
-    res.redirect(process.env.FRONTEND_URL)
+// ✅ Socket.IO events
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id)
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id)
   })
 })
 
+// ✅ Health check
 app.get("/", (req, res) => {
-  res.send("✅ Backend is running")
+  res.send("🚀 Inventory backend is running")
 })
 
-const port = process.env.PORT || 5000
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`)
-})
+// ✅ Start server
+const PORT = process.env.PORT || 5000
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`))
