@@ -7,7 +7,7 @@ export async function login(email, password){
   })
   if(!res.ok) throw await res.json()
   return res.json()
-}
+}a
 
 export async function register(name,email,password){
   const res = await fetch(`${API}/api/auth/register`, {
