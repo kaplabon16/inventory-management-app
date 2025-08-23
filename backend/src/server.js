@@ -1,56 +1,57 @@
-import express from 'express'
-import cors from 'cors'
-import dotenv from 'dotenv'
-import http from 'http'
-import { Server } from 'socket.io'
-import passport from 'passport'
-import './config/passport.js'
-import authRoutes from './routes/authRoutes.js'
-import userRoutes from './routes/userRoutes.js'
-import inventoryRoutes from './routes/inventoryRoutes.js'
-import itemRoutes from './routes/itemRoutes.js'
-import { errorHandler } from './middleware/errorMiddleware.js'
+import express from "express"
+import cors from "cors"
+import dotenv from "dotenv"
+import { PrismaClient } from "@prisma/client"
 
 dotenv.config()
+
 const app = express()
-const server = http.createServer(app)
-const io = new Server(server, {
-  cors: {
+const prisma = new PrismaClient()
+
+// Middleware
+app.use(express.json())
+
+// ✅ Configure CORS
+app.use(
+  cors({
     origin: [
-      "http://localhost:5173", // local dev
-      "https://inventory-management-app-pied-gamma.vercel.app" // Vercel frontend
+      "http://localhost:5173", // local frontend (Vite/React)
+      "https://inventory-management-app-git-main-kaplabon16s-projects.vercel.app", // your Vercel frontend
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+)
+
+// Routes
+app.get("/", (req, res) => {
+  res.json({ message: "Backend is running 🚀" })
+})
+
+// Example Inventory CRUD
+app.get("/api/inventories", async (req, res) => {
+  try {
+    const inventories = await prisma.inventory.findMany()
+    res.json(inventories)
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch inventories" })
   }
 })
 
-// Attach io to requests
-app.use((req, res, next) => { req.io = io; next() })
-
-// ✅ Configure CORS properly for REST API
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://inventory-management-app-pied-gamma.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}))
-
-app.use(express.json())
-app.use(passport.initialize())
-
-app.use('/api/auth', authRoutes)
-app.use('/api/users', userRoutes)
-app.use('/api/inventories', inventoryRoutes)
-app.use('/api/items', itemRoutes)
-
-app.use(errorHandler)
-
-io.on('connection', (socket) => {
-  console.log('Socket connected', socket.id)
+app.post("/api/inventories", async (req, res) => {
+  try {
+    const { name, quantity } = req.body
+    const inventory = await prisma.inventory.create({
+      data: { name, quantity },
+    })
+    res.json(inventory)
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create inventory" })
+  }
 })
 
-const PORT = process.env.PORT || 5045
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+// Server listen
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`)
+})
