@@ -31,6 +31,10 @@ export default function Register(){
           <button className="px-3 py-1 bg-green-600 text-white rounded">Register</button>
         </div>
         {error && <div className="text-red-600">{error}</div>}
+        <div className="mt-2 text-sm">
+          Already have an account? 
+          <a href="/login" className="text-blue-600 underline ml-1">Login</a>
+        </div>
       </form>
     </div>
   )

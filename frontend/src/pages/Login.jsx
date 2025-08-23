@@ -10,11 +10,9 @@ export default function Login(){
   const [error, setError] = useState(null)
 
   useEffect(()=>{
-    // check if redirected back from OAuth with token param
     const params = new URLSearchParams(window.location.search)
     const token = params.get('token')
     if(token){
-      // backend should redirect to frontend with token; store and reload
       localStorage.setItem('token', token)
       window.location.href = '/'
     }
@@ -42,6 +40,10 @@ export default function Login(){
           <a href="/api/auth/google" className="px-3 py-1 border rounded">Google</a>
         </div>
         {error && <div className="text-red-600">{error}</div>}
+        <div className="mt-2 text-sm">
+          Don't have an account? 
+          <a href="/register" className="text-green-600 underline ml-1">Register</a>
+        </div>
       </form>
     </div>
   )
