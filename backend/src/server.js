@@ -1,57 +1,73 @@
 import express from "express"
-import cors from "cors"
+import session from "express-session"
+import passport from "passport"
+import { Strategy as GoogleStrategy } from "passport-google-oauth20"
 import dotenv from "dotenv"
-import { PrismaClient } from "@prisma/client"
+import cors from "cors"
 
 dotenv.config()
-
 const app = express()
-const prisma = new PrismaClient()
 
 // Middleware
 app.use(express.json())
+app.use(cors({
+  origin: process.env.FRONTEND_URL, // Vercel frontend
+  credentials: true
+}))
 
-// ✅ Configure CORS
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173", // local frontend (Vite/React)
-      "https://inventory-management-app-git-main-kaplabon16s-projects.vercel.app", // your Vercel frontend
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  })
-)
+app.use(session({
+  secret: process.env.SESSION_SECRET || "secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  }
+}))
+
+app.use(passport.initialize())
+app.use(passport.session())
+
+// Passport Google Strategy
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`
+}, (accessToken, refreshToken, profile, done) => {
+  // You should upsert user in NeonDB here
+  return done(null, profile)
+}))
+
+passport.serializeUser((user, done) => {
+  done(null, user)
+})
+passport.deserializeUser((obj, done) => {
+  done(null, obj)
+})
 
 // Routes
+app.get("/api/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+)
+
+app.get("/api/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  (req, res) => {
+    res.redirect(process.env.FRONTEND_URL) // redirect back to frontend
+  }
+)
+
+app.get("/api/auth/logout", (req, res) => {
+  req.logout(() => {
+    res.redirect(process.env.FRONTEND_URL)
+  })
+})
+
 app.get("/", (req, res) => {
-  res.json({ message: "Backend is running 🚀" })
+  res.send("✅ Backend is running")
 })
 
-// Example Inventory CRUD
-app.get("/api/inventories", async (req, res) => {
-  try {
-    const inventories = await prisma.inventory.findMany()
-    res.json(inventories)
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch inventories" })
-  }
-})
-
-app.post("/api/inventories", async (req, res) => {
-  try {
-    const { name, quantity } = req.body
-    const inventory = await prisma.inventory.create({
-      data: { name, quantity },
-    })
-    res.json(inventory)
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create inventory" })
-  }
-})
-
-// Server listen
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`)
+const port = process.env.PORT || 5000
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`)
 })
