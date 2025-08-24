@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { updateItem, likeItem } from '../services/itemService.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import CustomFieldInput from '../components/CustomFieldInput.jsx'
+import CustomFieldInput from '../component/CustomFieldInput.jsx'
 import { getInventory } from '../services/inventoryService.js'
 
 export default function ItemPage(){
