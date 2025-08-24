@@ -18,8 +18,7 @@ export default function App(){
       <Header />
       <main className="flex-1 container px-4 py-6">
         <Routes>
-          <Route path="/" element={ user ? <Home /> : <Navigate to="/login" /> } />
-          <Route path="/dashboard" element={ user ? <Home /> : <Navigate to="/login" /> } />
+          <Route path="/" element={<Home />} />
           <Route path="/inventory/:id" element={<InventoryPage />} />
           <Route path="/item/:id" element={<ItemPage />} />
           <Route path="/admin" element={ user?.isAdmin ? <AdminPage /> : <Navigate to="/login" /> } />

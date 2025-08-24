@@ -1,7 +1,6 @@
 import prisma from '../prisma/client.js'
 import { generateToken } from '../utils/jwt.js'
 import bcrypt from 'bcryptjs'
-import passport from 'passport'
 
 export async function register(req,res){
   const {name,email,password} = req.body
@@ -21,7 +20,6 @@ export async function login(req,res){
   res.json({ token, user })
 }
 
-// OAuth callback
 export async function oauthCallback(req,res){
   const user = req.user
   const token = generateToken(user)

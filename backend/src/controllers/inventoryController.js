@@ -1,15 +1,13 @@
-// backend/src/controllers/inventoryController.js
 import prisma from '../prisma/client.js'
+import { generateCustomId } from '../utils/customIdGenerator.js'
 
 export async function createInventory(req,res){
-  const {title,description,category,public: isPublic,tags,customFields,customIdFormat} = req.body
+  const {title,description,category,publicAccess,tags,customFields,customIdFormat} = req.body
   const inventory = await prisma.inventory.create({
     data:{
-      title,description,category,public:isPublic ?? false,
+      title,description,category,public:publicAccess,
       ownerId:req.user.id,
-      tags,
-      customFields,
-      customIdFormat
+      tags,customFields,customIdFormat
     }
   })
   res.json(inventory)
@@ -17,11 +15,11 @@ export async function createInventory(req,res){
 
 export async function updateInventory(req,res){
   const { id } = req.params
-  const { title,description,category,public: isPublic,tags,customFields,customIdFormat,version } = req.body
+  const { title,description,category,publicAccess,tags,customFields,customIdFormat,version } = req.body
   const inventory = await prisma.inventory.updateMany({
     where:{ id:parseInt(id), version },
     data:{
-      title,description,category,public:isPublic ?? false,
+      title,description,category,public:publicAccess,
       tags,customFields,customIdFormat,
       version:{ increment:1 }
     }
@@ -39,13 +37,12 @@ export async function getInventory(req,res){
 export async function searchInventory(req,res){
   const { q } = req.query
   const inventories = await prisma.inventory.findMany({
-    where: q ? {
+    where:{
       OR:[
         { title:{ contains:q, mode:'insensitive' } },
         { description:{ contains:q, mode:'insensitive' } }
       ]
-    } : {},
-    include: { _count: { select: { items: true } } }
+    }
   })
   res.json(inventories)
 }

@@ -1,4 +1,3 @@
-// backend/src/controllers/userController.js
 import prisma from '../prisma/client.js'
 
 export async function getUsers(req,res){
@@ -28,9 +27,4 @@ export async function removeAdmin(req,res){
   const { id } = req.params
   const user = await prisma.user.update({ where:{id:parseInt(id)}, data:{isAdmin:false} })
   res.json(user)
-}
-
-export async function getMe(req,res){
-  const { id, name, email, isAdmin, blocked, theme, language, createdAt, updatedAt } = req.user
-  res.json({ id, name, email, isAdmin, blocked, theme, language, createdAt, updatedAt })
 }
