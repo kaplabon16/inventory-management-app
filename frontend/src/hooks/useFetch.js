@@ -1,36 +1,29 @@
-import { useState, useEffect, useContext } from 'react'
-import { AuthContext } from '../contexts/AuthContext'
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext.jsx'
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000'
+export default function useFetch(){
+  const { token } = useAuth()
+  const [loading, setLoading] = useState(false)
 
-export const useFetch = (endpoint, method = 'GET', body = null) => {
-  const { user } = useContext(AuthContext)
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  async function request(path, options = {}){
+    setLoading(true)
+    try {
+      const base = import.meta.env.VITE_API_BASE
+      const res = await fetch(base + path, {
+        ...options,
+        credentials: 'include', // important for session cookies
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers||{}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined
+      })
+      const json = await res.json().catch(()=>null)
+      if(!res.ok) throw json || { message: 'Request failed' }
+      return json
+    } finally { setLoading(false) }
+  }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const res = await fetch(`${API_BASE}${endpoint}`, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(user ? { Authorization: `Bearer ${user.token}` } : {})
-          },
-          body: body ? JSON.stringify(body) : null
-        })
-        const json = await res.json()
-        setData(json)
-      } catch (err) {
-        setError(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
-  }, [endpoint, method, body, user])
-
-  return { data, loading, error }
+  return { request, loading }
 }
