@@ -1,15 +1,14 @@
-// frontend/src/app.jsx
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import Header from './components/header.jsx'
-import Footer from './components/footer.jsx'
-import Home from './pages/home.jsx'
+import Header from './components/Header.jsx'
+import Footer from './components/Footer.jsx'
+import Home from './pages/Home.jsx'
 import InventoryPage from './pages/InventoryPage.jsx'
 import ItemPage from './pages/ItemPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
-import Profile from './pages/profile.jsx'
+import Profile from './pages/Profile.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 
 export default function App(){
@@ -19,7 +18,8 @@ export default function App(){
       <Header />
       <main className="flex-1 container px-4 py-6">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={ user ? <Home /> : <Navigate to="/login" /> } />
+          <Route path="/dashboard" element={ user ? <Home /> : <Navigate to="/login" /> } />
           <Route path="/inventory/:id" element={<InventoryPage />} />
           <Route path="/item/:id" element={<ItemPage />} />
           <Route path="/admin" element={ user?.isAdmin ? <AdminPage /> : <Navigate to="/login" /> } />

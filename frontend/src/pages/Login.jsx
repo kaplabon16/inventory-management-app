@@ -1,55 +1,33 @@
-// frontend/src/pages/login.jsx
-import React, { useState, useEffect } from "react"
-import { useAuth } from "../context/AuthContext.jsx"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useContext } from 'react'
+import { AuthContext } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
-export default function Login() {
-  const { loginLocal, loginWithToken } = useAuth()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState(null)
+const Login = () => {
+  const { login } = useContext(AuthContext)
   const navigate = useNavigate()
 
   useEffect(() => {
-    // handle OAuth redirect with token param
     const params = new URLSearchParams(window.location.search)
-    const token = params.get("token")
-    if (token) {
-      loginWithToken(token)
-        .then(()=> navigate("/"))
-        .catch(()=> setError("OAuth login failed"))
+    const token = params.get('token')
+    const name = params.get('name')
+    const email = params.get('email')
+    if (token && name && email) {
+      login({ token, name, email })
+      navigate('/')
     }
-  }, [navigate, loginWithToken])
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError(null)
-    try {
-      await loginLocal(email, password)
-      navigate("/")
-    } catch (err) {
-      setError(err?.message || "Login failed")
-    }
-  }
-
-  const API = import.meta.env.VITE_API_BASE || "http://localhost:5045"
+  }, [])
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-4 border rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Login</h2>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full border px-2 py-1" />
-        <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full border px-2 py-1" />
-        <div className="flex gap-2 mt-2">
-          <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded">Login</button>
-          <button type="button" onClick={() => window.location.href=`${API}/api/auth/github`} className="px-3 py-1 border rounded">GitHub</button>
-          <button type="button" onClick={() => window.location.href=`${API}/api/auth/google`} className="px-3 py-1 border rounded">Google</button>
-        </div>
-        {error && <div className="text-red-600 mt-2">{error}</div>}
-        <div className="mt-3 text-sm">
-          Don&apos;t have an account? <a href="/register" className="text-blue-600 underline ml-1">Register</a>
-        </div>
-      </form>
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-3xl font-bold mb-4">Login</h1>
+      <a href="http://localhost:5000/auth/google" className="bg-blue-500 text-white px-4 py-2 rounded mb-2">
+        Login with Google
+      </a>
+      <a href="http://localhost:5000/auth/github" className="bg-gray-800 text-white px-4 py-2 rounded">
+        Login with GitHub
+      </a>
     </div>
   )
 }
+
+export default Login
