@@ -1,12 +1,14 @@
+// frontend/src/pages/inventorypage.jsx
 import React, { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { getInventory, updateInventory } from '../services/inventoryService.js'
-import ItemCard from '../components/ItemCard.jsx'
-import CustomFieldInput from '../components/CustomFieldInput.jsx'
-import TagInput from '../components/TagInput.jsx'
-import useIntervalSave from '../hooks/useIntervalSave.js'
+import ItemCard from '../components/itemcard.jsx'
+import CustomFieldInput from '../components/customfieldinput.jsx'
+import TagInput from '../components/taginput.jsx'
+import useIntervalSave from '../hooks/useinterval.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { generateCustomId } from '../utils/generateCustomId.js'
+import { deleteItem } from '../services/itemService.js'
 
 export default function InventoryPage(){
   const { id } = useParams()
@@ -27,7 +29,7 @@ export default function InventoryPage(){
         title: inventory.title,
         description: inventory.description,
         category: inventory.category,
-        publicAccess: inventory.public,
+        public: inventory.public,
         tags: inventory.tags,
         customFields: inventory.customFields,
         customIdFormat: inventory.customIdFormat,
@@ -42,21 +44,29 @@ export default function InventoryPage(){
 
   useIntervalSave(save, editing ? 8000 : null)
 
-  // listen for real-time item events for this inventory
+  // realtime item add/delete
   useEffect(()=>{
     if(!socket || !inventory) return
-    const onAdded = (item)=> {
-      setInventory(prev => ({ ...prev, items: [ ...prev.items, item ] }))
-    }
+    const onAdded = (item)=> setInventory(prev => ({ ...prev, items: [ ...(prev.items||[]), item ] }))
+    const onDeleted = (deletedId)=> setInventory(prev => ({ ...prev, items: (prev.items||[]).filter(it=>it.id !== deletedId) }))
     socket.on(`itemAdded:${inventory.id}`, onAdded)
+    socket.on(`itemDeleted:${inventory.id}`, onDeleted)
     return ()=> {
       socket.off(`itemAdded:${inventory.id}`, onAdded)
+      socket.off(`itemDeleted:${inventory.id}`, onDeleted)
     }
   }, [socket, inventory])
 
   if(!inventory) return <div>Loading...</div>
 
   const canEdit = user && (user.id === inventory.ownerId || user.isAdmin || inventory.public)
+
+  async function handleDelete(itemId){
+    try{
+      await deleteItem(itemId, token)
+      setInventory(prev => ({ ...prev, items: (prev.items||[]).filter(i=>i.id!==itemId) }))
+    }catch(e){ console.error(e) }
+  }
 
   return (
     <div>
@@ -85,7 +95,7 @@ export default function InventoryPage(){
       <div className="mb-6">
         <h3 className="font-semibold mb-2">Items</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {inventory.items?.map(it => <ItemCard key={it.id} item={it} canEdit={canEdit} />)}
+          {inventory.items?.map(it => <ItemCard key={it.id} item={it} canEdit={canEdit} onDelete={()=>handleDelete(it.id)} />)}
         </div>
       </div>
 

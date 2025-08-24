@@ -1,11 +1,12 @@
+// frontend/src/context/authcontext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react"
-import * as authService from "../services/authService.js"
+import * as authService from "../services/authservice.js"
 import { io } from "socket.io-client"
 
 const AuthContext = createContext()
 export const useAuth = () => useContext(AuthContext)
 
-const API = import.meta.env.VITE_API_BASE || "http://localhost:5000"
+const API = import.meta.env.VITE_API_BASE || "http://localhost:5045"
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API
 
 export function AuthProvider({ children }) {
@@ -30,6 +31,13 @@ export function AuthProvider({ children }) {
     }
     // eslint-disable-next-line
   }, [token])
+
+  function loginWithToken(tok){
+    setToken(tok)
+    localStorage.setItem("token", tok)
+    return authService.getProfile(tok)
+      .then(u => { setUser(u); localStorage.setItem("user", JSON.stringify(u)) ; return u })
+  }
 
   function loginLocal(email, password){
     return authService.login(email, password).then(res => {
@@ -64,7 +72,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loginLocal, registerLocal, logout, startOAuth, socket }}>
+    <AuthContext.Provider value={{ user, token, loginLocal, registerLocal, logout, startOAuth, socket, loginWithToken }}>
       {children}
     </AuthContext.Provider>
   )

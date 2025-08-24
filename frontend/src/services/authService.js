@@ -1,4 +1,5 @@
-const API = import.meta.env.VITE_API_BASE || "http://localhost:5000"
+// frontend/src/services/authservice.js
+const API = import.meta.env.VITE_API_BASE || "http://localhost:5045"
 
 export async function login(email, password) {
   const res = await fetch(`${API}/api/auth/login`, {

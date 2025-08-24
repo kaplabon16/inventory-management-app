@@ -1,3 +1,6 @@
+// backend/src/utils/customIdGenerator.js
+import { randomUUID } from 'crypto'
+
 export function generateCustomId(format, itemCount) {
   let id = ''
   for (let part of format) {
@@ -21,7 +24,7 @@ export function generateCustomId(format, itemCount) {
         id += Math.floor(Math.random() * (1<<32)).toString()
         break
       case 'guid':
-        id += crypto.randomUUID()
+        id += randomUUID()
         break
       case 'datetime':
         id += Date.now().toString()

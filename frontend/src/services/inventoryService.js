@@ -1,3 +1,4 @@
+// frontend/src/services/inventoryservice.js
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:5045'
 
 export async function listInventories(q){
@@ -16,8 +17,9 @@ export async function getInventory(id){
 
 export async function createInventory(payload, token){
   const res = await fetch(`${API}/api/inventories`, {
-    method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-    body: JSON.stringify(payload)
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+    body: JSON.stringify(payload) // payload should include "public"
   })
   if(!res.ok) throw await res.json()
   return res.json()
@@ -25,8 +27,9 @@ export async function createInventory(payload, token){
 
 export async function updateInventory(id,payload,token){
   const res = await fetch(`${API}/api/inventories/${id}`, {
-    method:'PUT', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-    body: JSON.stringify(payload)
+    method:'PUT',
+    headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+    body: JSON.stringify(payload) // payload should include "public"
   })
   if(!res.ok) throw await res.json()
   return res.json()

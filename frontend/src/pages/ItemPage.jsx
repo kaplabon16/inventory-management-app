@@ -1,19 +1,18 @@
+// frontend/src/pages/itempage.jsx
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { updateItem } from '../services/itemService.js'
+import { updateItem, likeItem } from '../services/itemService.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import CustomFieldInput from '../components/CustomFieldInput.jsx'
 import { getInventory } from '../services/inventoryService.js'
-import { likeItem } from '../services/itemService.js'
 
 export default function ItemPage(){
   const { id } = useParams()
   const [item, setItem] = useState(null)
   const [inventory, setInventory] = useState(null)
-  const { token, user, socket } = useAuth()
+  const { token, user } = useAuth()
 
   useEffect(()=>{
-    // we assume backend has GET /api/items/:id (if not, use /api/inventories/:invId then find item)
     fetch((import.meta.env.VITE_API_BASE || 'http://localhost:5045') + `/api/items/${id}`)
       .then(r=>r.json()).then(setItem).catch(()=>{})
   }, [id])
@@ -35,9 +34,8 @@ export default function ItemPage(){
 
   async function doLike(){
     try {
-      await likeItem(item.id, token)
-      // optimistic
-      setItem(prev=> ({ ...prev, likesCount: (prev.likesCount||0)+1 }))
+      const res = await likeItem(item.id, token) // { likes: [...] }
+      setItem(prev=> ({ ...prev, likes: res.likes }))
     } catch(e){ console.error(e) }
   }
 
@@ -58,7 +56,9 @@ export default function ItemPage(){
 
       <div className="flex gap-3">
         {canEdit && <button onClick={save} className="px-3 py-1 bg-blue-600 text-white rounded">Save</button>}
-        <button onClick={doLike} className="px-3 py-1 border rounded">Like ({item.likesCount||0})</button>
+        <button onClick={doLike} className="px-3 py-1 border rounded">
+          Like ({Array.isArray(item.likes) ? item.likes.length : 0})
+        </button>
       </div>
     </div>
   )

@@ -1,3 +1,4 @@
+// backend/src/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -52,13 +53,13 @@ model Item {
   createdById Int
   createdBy   User      @relation(fields: [createdById], references: [id])
   customId    String
-  fields      Json?
-  likes       Int       @default(0)
+  data        Json?
+  likes       Int[]     @default([]) // store userIds who liked
   version     Int       @default(1)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@unique([inventoryId, customId]) // Enforces unique customId per inventory
+  @@unique([inventoryId, customId])
   @@index([inventoryId])
 }
 

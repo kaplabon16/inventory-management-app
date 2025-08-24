@@ -1,3 +1,4 @@
+// frontend/src/services/itemservice.js
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:5045'
 
 export async function createItem(payload, token){
@@ -21,6 +22,14 @@ export async function updateItem(id,payload,token){
 export async function likeItem(id, token){
   const res = await fetch(`${API}/api/items/like/${id}`, {
     method:'PUT', headers:{ Authorization:`Bearer ${token}` }
+  })
+  if(!res.ok) throw await res.json()
+  return res.json() // { likes: [...] }
+}
+
+export async function deleteItem(id, token){
+  const res = await fetch(`${API}/api/items/${id}`, {
+    method:'DELETE', headers:{ Authorization:`Bearer ${token}` }
   })
   if(!res.ok) throw await res.json()
   return res.json()
