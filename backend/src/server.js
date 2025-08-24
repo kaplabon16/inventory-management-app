@@ -19,50 +19,39 @@ dotenv.config()
 const app = express()
 const server = http.createServer(app)
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://inventory-management-app-pied-gamma.vercel.app"
+const allowedOrigins = [FRONTEND_URL, "http://localhost:5173"]
 
-// --- Dynamic CORS setup for credentials ---
-const corsOptions = {
-  origin: function(origin, callback) {
-    if (!origin || origin === FRONTEND_URL) {
-      callback(null, true)
-    } else {
-      callback(new Error("Not allowed by CORS"))
-    }
-  },
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}
-
-app.use(cors(corsOptions))
-
-// Handle preflight requests
-app.options("*", cors(corsOptions))
-
-// --- Middleware ---
-app.use(express.json())
-app.use(session({ 
-  secret: process.env.SESSION_SECRET || "keyboardcat", 
-  resave: false, 
-  saveUninitialized: false 
 }))
+
+app.use(express.json())
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
+  }
+}))
+
 app.use(passport.initialize())
 app.use(passport.session())
 
-// --- Routes ---
 app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/inventories", inventoryRoutes)
 app.use("/api/items", itemRoutes)
 app.use(errorHandler)
 
-app.get("/", (req, res) => res.send("Inventory backend running"))
+app.get("/", (req,res)=>res.send("Inventory backend running"))
 
-// --- Socket.IO ---
-const io = new Server(server, { cors: corsOptions })
-app.use((req, res, next) => { req.io = io; next() })
+const io = new Server(server, { cors:{ origin: allowedOrigins, credentials:true }})
+app.use((req,res,next)=>{ req.io = io; next() })
 io.on("connection", socket => console.log("Socket connected:", socket.id))
 
 const PORT = process.env.PORT || 5000
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+server.listen(PORT, ()=>console.log(`Server running on port ${PORT}`))
