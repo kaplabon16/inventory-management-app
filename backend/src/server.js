@@ -19,26 +19,28 @@ dotenv.config()
 const app = express()
 const server = http.createServer(app)
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
+
 // 🔹 Allowed origins
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://inventory-management-h1e9m8bpa-kaplabon16s-projects.vercel.app",
-  "https://inventory-management-app-pied-gamma.vercel.app"
+  "https://inventory-management-app-pied-gamma.vercel.app",
+  "https://inventory-management-h1e9m8bpa-kaplabon16s-projects.vercel.app"
 ]
 
 // 🔹 CORS setup
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin || allowedOrigins.includes(origin)){
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
-      console.log("Blocked by CORS:", origin)
+      console.log("❌ Blocked by CORS:", origin)
       callback(new Error("Not allowed by CORS"))
     }
   },
   credentials: true,
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"]
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }))
 
 // Body parser
@@ -69,21 +71,28 @@ app.use("/api/items", itemRoutes)
 app.use(errorHandler)
 
 // Health check
-app.get("/", (req,res) => res.send("🚀 Inventory backend is running"))
+app.get("/", (req, res) => res.send("🚀 Inventory backend is running"))
+
+// OAuth success redirect (example)
+app.get("/api/auth/success", (req, res) => {
+  // Pass JWT or session token to frontend
+  const token = req.user?.token
+  res.redirect(`${FRONTEND_URL}/login?token=${token}`)
+})
 
 // Socket.io
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET","POST","PUT","DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
 })
 
-app.use((req,res,next) => { req.io = io; next() })
+app.use((req, res, next) => { req.io = io; next() })
 
 io.on("connection", socket => {
-  console.log("Socket connected:", socket.id)
+  console.log("✅ Socket connected:", socket.id)
 })
 
 const PORT = process.env.PORT || 5000

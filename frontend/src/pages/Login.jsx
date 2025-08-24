@@ -15,20 +15,22 @@ export default function Login() {
     const token = params.get("token")
     if (token) {
       localStorage.setItem("token", token)
-      window.location.href = "/" // reload page after OAuth login
+      navigate("/") // redirect after OAuth login
     }
-  }, [])
+  }, [navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
     try {
       await loginLocal(email, password)
-      navigate("/")
+      navigate("/") // after successful login
     } catch (err) {
       setError(err?.message || "Login failed")
     }
   }
+
+  const API = import.meta.env.VITE_API_BASE || "http://localhost:5000"
 
   return (
     <div className="max-w-md mx-auto mt-10 p-4 border rounded shadow">
@@ -52,12 +54,24 @@ export default function Login() {
         />
         <div className="flex gap-2 mt-2">
           <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded">Login</button>
-          <button type="button" onClick={() => window.location.href="https://inventory-backend-production-aa15.up.railway.app/api/auth/github"} className="px-3 py-1 border rounded">GitHub</button>
-          <button type="button" onClick={() => window.location.href="/api/auth/google"} className="px-3 py-1 border rounded">Google</button>
+          <button 
+            type="button" 
+            onClick={() => window.location.href=`${API}/api/auth/github`} 
+            className="px-3 py-1 border rounded"
+          >
+            GitHub
+          </button>
+          <button 
+            type="button" 
+            onClick={() => window.location.href=`${API}/api/auth/google`} 
+            className="px-3 py-1 border rounded"
+          >
+            Google
+          </button>
         </div>
         {error && <div className="text-red-600 mt-2">{error}</div>}
         <div className="mt-3 text-sm">
-          Don't have an account? 
+          Don&apos;t have an account? 
           <a href="/register" className="text-blue-600 underline ml-1">Register</a>
         </div>
       </form>
