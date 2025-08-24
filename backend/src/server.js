@@ -20,12 +20,22 @@ const app = express()
 const server = http.createServer(app)
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://inventory-management-app-pied-gamma.vercel.app"
-const allowedOrigins = [FRONTEND_URL, "http://localhost:5173"]
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: FRONTEND_URL,
   credentials: true,
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization","X-Requested-With"],
 }))
+
+// Handle preflight requests manually
+app.options("*", (req,res) => {
+  res.header("Access-Control-Allow-Origin", FRONTEND_URL)
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With")
+  res.header("Access-Control-Allow-Credentials", "true")
+  res.sendStatus(204)
+})
 
 app.use(express.json())
 app.use(session({
@@ -34,7 +44,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    sameSite: "none"
   }
 }))
 
@@ -49,7 +59,7 @@ app.use(errorHandler)
 
 app.get("/", (req,res)=>res.send("Inventory backend running"))
 
-const io = new Server(server, { cors:{ origin: allowedOrigins, credentials:true }})
+const io = new Server(server, { cors:{ origin: FRONTEND_URL, credentials:true }})
 app.use((req,res,next)=>{ req.io = io; next() })
 io.on("connection", socket => console.log("Socket connected:", socket.id))
 
