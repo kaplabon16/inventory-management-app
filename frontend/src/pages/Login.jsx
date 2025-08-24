@@ -52,7 +52,7 @@ export default function Login() {
         />
         <div className="flex gap-2 mt-2">
           <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded">Login</button>
-          <button type="button" onClick={() => window.location.href="/api/auth/github"} className="px-3 py-1 border rounded">GitHub</button>
+          <button type="button" onClick={() => window.location.href="https://inventory-backend-production-aa15.up.railway.app/api/auth/github"} className="px-3 py-1 border rounded">GitHub</button>
           <button type="button" onClick={() => window.location.href="/api/auth/google"} className="px-3 py-1 border rounded">Google</button>
         </div>
         {error && <div className="text-red-600 mt-2">{error}</div>}
