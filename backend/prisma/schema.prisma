@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String
+  email     String   @unique
+  password  String?
+  roles     String[] 
+  googleId  String?  @unique
+  githubId  String?  @unique
+  theme     String   @default("light")
+  language  String   @default("en")
+  blocked   Boolean  @default(false)
+  inventories Inventory[] @relation("creatorInventories")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Inventory {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String
+  creatorId   String
+  public      Boolean  @default(false)
+  tags        String[]
+  imageUrl    String?
+  version     Int      @default(1)
+  items       Item[]
+  fields      Field[]
+  customIDs   CustomID[]
+  discussions Discussion[]
+  creator     User     @relation(fields: [creatorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  inventoryId String
+  customId    String
+  createdBy   String
+  fieldValues Json
+  likesCount  Int      @default(0)
+  version     Int      @default(1)
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([inventoryId, customId])
+}
+
+model Field {
+  id          String   @id @default(cuid())
+  inventoryId String
+  type        String
+  title       String
+  description String?
+  showInTable Boolean  @default(true)
+  order       Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+}
+
+model CustomID {
+  id          String   @id @default(cuid())
+  inventoryId String
+  elementType String
+  elementValue String
+  order       Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+  @@unique([inventoryId, elementValue])
+}
+
+model Discussion {
+  id          String   @id @default(cuid())
+  inventoryId String
+  userId      String
+  message     String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+}
