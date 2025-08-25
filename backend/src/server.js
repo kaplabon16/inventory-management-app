@@ -13,17 +13,40 @@ import './config/passport.js'
 dotenv.config()
 const app = express()
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }))
+// CORS
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true
+  })
+)
+
+// Body parser
 app.use(express.json())
-app.use(session({ secret: process.env.SESSION_SECRET || 'supersecret', resave: false, saveUninitialized: false }))
+
+// Session setup
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'supersecret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, sameSite: 'lax' } // adjust secure=true for HTTPS
+  })
+)
+
+// Passport
 app.use(passport.initialize())
 app.use(passport.session())
 
-app.use('/auth', authRoutes)
-app.use('/users', userRoutes)
-app.use('/inventories', inventoryRoutes)
-app.use('/items', itemRoutes)
+// --- API ROUTES ---
+app.use('/api/auth', authRoutes)
+app.use('/api/users', userRoutes)
+app.use('/api/inventories', inventoryRoutes)
+app.use('/api/items', itemRoutes)
+
+// Error handling
 app.use(errorMiddleware)
 
+// Start server
 const PORT = process.env.PORT || 5045
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
