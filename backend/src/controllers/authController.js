@@ -1,94 +1,71 @@
-import prisma from '../config/db.js'
-import { generateToken } from '../utils/jwt.js'
+import prisma from '../prisma/client.js'
 import bcrypt from 'bcryptjs'
-import passport from 'passport'
 
-export async function register(req, res) {
+// Register: create user and log them in (session)
+export async function register(req, res, next) {
   try {
     const { name, email, password } = req.body
-    
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } })
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' })
-    }
-    
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' })
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) return res.status(400).json({ message: 'Email already in use' })
     const hash = await bcrypt.hash(password, 10)
-    const user = await prisma.user.create({ 
-      data: { name, email, password: hash },
-      select: { id: true, name: true, email: true, isAdmin: true, blocked: true }
+    const user = await prisma.user.create({ data: { name, email, password: hash } })
+    // establish session
+    req.login(user, (err) => {
+      if (err) return next(err)
+      // don't send password back
+      const { password: _p, ...safeUser } = user
+      res.json({ user: safeUser })
     })
-    
-    const token = generateToken(user)
-    res.json({ 
-      token, 
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        blocked: user.blocked
-      }
-    })
-  } catch (error) {
-    console.error('Register error:', error)
-    res.status(500).json({ message: 'Registration failed', error: error.message })
+  } catch (err) {
+    next(err)
   }
 }
 
-export async function login(req, res) {
+// Local login: verify and establish session
+export async function login(req, res, next) {
   try {
     const { email, password } = req.body
-    
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' })
     const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password' })
-    }
-    
-    if (user.blocked) {
-      return res.status(403).json({ message: 'Your account has been blocked' })
-    }
-    
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' })
     const match = await bcrypt.compare(password, user.password || '')
-    if (!match) {
-      return res.status(400).json({ message: 'Invalid email or password' })
-    }
-    
-    const token = generateToken(user)
-    const userResponse = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      blocked: user.blocked
-    }
-    
-    res.json({ token, user: userResponse })
-  } catch (error) {
-    console.error('Login error:', error)
-    res.status(500).json({ message: 'Login failed', error: error.message })
+    if (!match) return res.status(400).json({ message: 'Invalid credentials' })
+    req.login(user, (err) => {
+      if (err) return next(err)
+      const { password: _p, ...safeUser } = user
+      res.json({ user: safeUser })
+    })
+  } catch (err) {
+    next(err)
   }
 }
 
-// Fixed OAuth callback
-export async function oauthCallback(req, res) {
+// Logout: destroy session
+export async function logout(req, res, next) {
   try {
-    if (!req.user) {
-      console.error('No user in OAuth callback')
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`)
-    }
-    
-    const user = req.user
-    const token = generateToken(user)
-    
-    // Use environment variable for frontend URL
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
-    
-    console.log('OAuth success, redirecting to:', `${frontendUrl}/oauth-success?token=${token}`)
-    res.redirect(`${frontendUrl}/oauth-success?token=${token}`)
-  } catch (error) {
-    console.error('OAuth callback error:', error)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
-    res.redirect(`${frontendUrl}/login?error=oauth_error`)
+    req.logout(err => {
+      if (err) return next(err)
+      req.session?.destroy(() => {
+        res.clearCookie('connect.sid')
+        res.json({ message: 'Logged out' })
+      })
+    })
+  } catch (err) {
+    next(err)
   }
+}
+
+// Return current user
+export async function me(req, res) {
+  if (!req.isAuthenticated || !req.isAuthenticated()) return res.status(401).json({ message: 'Not authenticated' })
+  const user = req.user
+  const { password: _p, ...safeUser } = user
+  res.json({ user: safeUser })
+}
+
+// OAuth callback: passport already created session; redirect to frontend
+export async function oauthCallback(req, res) {
+  // If login succeeded, passport attached req.user and session is established
+  res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-success`)
 }

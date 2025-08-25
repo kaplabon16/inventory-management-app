@@ -1,133 +1,55 @@
-import prisma from '../config/db.js'
+import prisma from '../prisma/client.js'
 
-// Add this missing function for getting current user profile
-export async function getCurrentUser(req, res) {
+// list users (admin only)
+export async function getUsers(req, res, next) {
   try {
-    const user = await prisma.user.findUnique({ 
-      where: { id: req.user.id },
-      select: { 
-        id: true, 
-        name: true, 
-        email: true, 
-        isAdmin: true, 
-        blocked: true,
-        theme: true,
-        language: true,
-        createdAt: true
-      }
-    })
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' })
-    }
-    
-    res.json(user)
-  } catch (error) {
-    console.error('Get current user error:', error)
-    res.status(500).json({ message: 'Failed to get user profile' })
-  }
-}
-
-export async function getUsers(req, res) {
-  try {
-    const users = await prisma.user.findMany({ 
-      select: { 
-        id: true, 
-        name: true, 
-        email: true, 
-        isAdmin: true, 
-        blocked: true,
-        createdAt: true
-      },
-      orderBy: { createdAt: 'desc' }
+    const users = await prisma.user.findMany({
+      select: { id: true, name: true, email: true, isAdmin: true, blocked: true, createdAt: true }
     })
     res.json(users)
-  } catch (error) {
-    console.error('Get users error:', error)
-    res.status(500).json({ message: 'Failed to get users' })
+  } catch (err) {
+    next(err)
   }
 }
 
-export async function blockUser(req, res) {
+export async function blockUser(req, res, next) {
   try {
-    const { id } = req.params
-    const user = await prisma.user.update({ 
-      where: { id: parseInt(id) }, 
-      data: { blocked: true },
-      select: { 
-        id: true, 
-        name: true, 
-        email: true, 
-        isAdmin: true, 
-        blocked: true
-      }
-    })
+    const id = parseInt(req.params.id)
+    if (req.user.id === id) return res.status(400).json({ message: "Admins cannot block themselves via this endpoint" })
+    const user = await prisma.user.update({ where: { id }, data: { blocked: true } })
     res.json(user)
-  } catch (error) {
-    console.error('Block user error:', error)
-    res.status(500).json({ message: 'Failed to block user' })
+  } catch (err) {
+    next(err)
   }
 }
 
-export async function unblockUser(req, res) {
+export async function unblockUser(req, res, next) {
   try {
-    const { id } = req.params
-    const user = await prisma.user.update({ 
-      where: { id: parseInt(id) }, 
-      data: { blocked: false },
-      select: { 
-        id: true, 
-        name: true, 
-        email: true, 
-        isAdmin: true, 
-        blocked: true
-      }
-    })
+    const id = parseInt(req.params.id)
+    const user = await prisma.user.update({ where: { id }, data: { blocked: false } })
     res.json(user)
-  } catch (error) {
-    console.error('Unblock user error:', error)
-    res.status(500).json({ message: 'Failed to unblock user' })
+  } catch (err) {
+    next(err)
   }
 }
 
-export async function makeAdmin(req, res) {
+export async function makeAdmin(req, res, next) {
   try {
-    const { id } = req.params
-    const user = await prisma.user.update({ 
-      where: { id: parseInt(id) }, 
-      data: { isAdmin: true },
-      select: { 
-        id: true, 
-        name: true, 
-        email: true, 
-        isAdmin: true, 
-        blocked: true
-      }
-    })
+    const id = parseInt(req.params.id)
+    const user = await prisma.user.update({ where: { id }, data: { isAdmin: true } })
     res.json(user)
-  } catch (error) {
-    console.error('Make admin error:', error)
-    res.status(500).json({ message: 'Failed to make user admin' })
+  } catch (err) {
+    next(err)
   }
 }
 
-export async function removeAdmin(req, res) {
+export async function removeAdmin(req, res, next) {
   try {
-    const { id } = req.params
-    const user = await prisma.user.update({ 
-      where: { id: parseInt(id) }, 
-      data: { isAdmin: false },
-      select: { 
-        id: true, 
-        name: true, 
-        email: true, 
-        isAdmin: true, 
-        blocked: true
-      }
-    })
+    const id = parseInt(req.params.id)
+    // Allow admin to remove themselves (project requirement)
+    const user = await prisma.user.update({ where: { id }, data: { isAdmin: false } })
     res.json(user)
-  } catch (error) {
-    console.error('Remove admin error:', error)
-    res.status(500).json({ message: 'Failed to remove admin rights' })
+  } catch (err) {
+    next(err)
   }
 }

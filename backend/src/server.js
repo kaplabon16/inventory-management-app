@@ -1,82 +1,72 @@
 import express from 'express'
 import session from 'express-session'
 import passport from 'passport'
-import { Strategy as GitHubStrategy } from 'passport-github2'
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import dotenv from 'dotenv'
+import http from 'http'
+import { Server } from 'socket.io'
+import authRoutes from './routes/authRoutes.js'
+import userRoutes from './routes/userRoutes.js'
+import inventoryRoutes from './routes/inventoryRoutes.js'
+import itemRoutes from './routes/itemRoutes.js'
+import { errorHandler } from './middleware/errorMiddleware.js'
+import './config/passport.js'
+
+dotenv.config()
 
 const app = express()
+const server = http.createServer(app)
 const PORT = process.env.PORT || 5045
-
-// Replace these with your deployed frontend URL
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://your-frontend.vercel.app'
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
-// Manual CORS setup (no cors package)
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", FRONTEND_URL)
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-  res.header("Access-Control-Allow-Credentials", "true")
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200)
-  }
-  next()
-})
-
-// Session setup
+// Session middleware (cookie-based auth)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'supersecret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, sameSite: 'lax' } // for HTTPS set secure: true
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  }
 }))
 
-// Passport setup
 app.use(passport.initialize())
 app.use(passport.session())
 
-passport.serializeUser((user, done) => done(null, user))
-passport.deserializeUser((obj, done) => done(null, obj))
+// Mount routes under /api to match project expectation
+app.use('/api/auth', authRoutes)
+app.use('/api/users', userRoutes)
+app.use('/api/inventories', inventoryRoutes)
+app.use('/api/items', itemRoutes)
 
-// GitHub OAuth
-passport.use(new GitHubStrategy({
-  clientID: process.env.GITHUB_CLIENT_ID,
-  clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL}/auth/github/callback`
-}, (accessToken, refreshToken, profile, done) => done(null, profile)))
+// Healthcheck
+app.get('/', (req, res) => res.send('🚀 Inventory backend is running'))
 
-// Google OAuth
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL}/auth/google/callback`
-}, (accessToken, refreshToken, profile, done) => done(null, profile)))
-
-// Routes
-app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }))
-app.get('/auth/github/callback', passport.authenticate('github', { failureRedirect: FRONTEND_URL + '/login', session: true }),
-  (req, res) => { res.redirect(FRONTEND_URL + '/?token=' + req.user.id) }
-)
-
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: FRONTEND_URL + '/login', session: true }),
-  (req, res) => { res.redirect(FRONTEND_URL + '/?token=' + req.user.id) }
-)
-
-// Dummy user route
-app.get('/api/users/me', (req, res) => {
-  if (!req.user) return res.status(401).json({ message: 'Not authenticated' })
-  res.json({ id: req.user.id, name: req.user.displayName || req.user.username, email: req.user.emails?.[0]?.value || '' })
+// OAuth success example route (optional)
+app.get('/api/auth/success', (req, res) => {
+  // If passport set req.user and you need to redirect to frontend
+  if (req.user) {
+    return res.redirect(`${FRONTEND_URL}/oauth-success`)
+  }
+  res.redirect(`${FRONTEND_URL}/login`)
 })
 
-// Example inventory route
-app.get('/api/inventories', (req, res) => {
-  res.json([
-    { id: '1', title: 'Inventory 1', description: 'Sample inventory', ownerId: req.user?.id || '1', items: [] },
-    { id: '2', title: 'Inventory 2', description: 'Another inventory', ownerId: req.user?.id || '2', items: [] },
-  ])
+// Socket.IO setup — no external `cors` package used
+const io = new Server(server, {
+  // keep default behavior; in production make sure frontend and backend are same origin or configure reverse proxy
 })
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+app.use((req, res, next) => { req.io = io; next() })
+
+io.on('connection', socket => {
+  console.log('✅ Socket connected:', socket.id)
+})
+
+app.use(errorHandler)
+
+server.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`)
+})
