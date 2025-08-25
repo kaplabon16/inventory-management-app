@@ -1,29 +1,19 @@
-import { useState } from 'react'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useState, useEffect } from 'react'
 
-export default function useFetch(){
-  const { token } = useAuth()
-  const [loading, setLoading] = useState(false)
+export default function useFetch(apiFunc, deps = []) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  async function request(path, options = {}){
+  useEffect(() => {
+    let isMounted = true
     setLoading(true)
-    try {
-      const base = import.meta.env.VITE_API_BASE
-      const res = await fetch(base + path, {
-        ...options,
-        credentials: 'include', // important for session cookies
-        headers: {
-          'Content-Type': 'application/json',
-          ...(options.headers||{}),
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: options.body ? JSON.stringify(options.body) : undefined
-      })
-      const json = await res.json().catch(()=>null)
-      if(!res.ok) throw json || { message: 'Request failed' }
-      return json
-    } finally { setLoading(false) }
-  }
+    apiFunc()
+      .then(res => isMounted && setData(res))
+      .catch(err => isMounted && setError(err))
+      .finally(() => isMounted && setLoading(false))
+    return () => { isMounted = false }
+  }, deps)
 
-  return { request, loading }
+  return { data, loading, error }
 }

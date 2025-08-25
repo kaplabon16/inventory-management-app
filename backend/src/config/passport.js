@@ -1,65 +1,53 @@
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import { Strategy as GitHubStrategy } from 'passport-github2'
-import prisma from '../prisma/client.js'
-import dotenv from 'dotenv'
-dotenv.config()
-
-passport.serializeUser((user, done) => {
-  done(null, user.id)
-})
-
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { id } })
-    done(null, user)
-  } catch (err) {
-    done(err)
-  }
-})
+import prisma from './db.js'
+import { generateToken } from '../utils/jwt.js'
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.GOOGLE_CALLBACK
+  callbackURL: `${process.env.BACKEND_URL}/auth/google/callback`
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    let user = await prisma.user.findUnique({ where: { googleId: profile.id } })
+    let user = await prisma.user.findUnique({ where: { email: profile.emails[0].value } })
     if (!user) {
-      const email = profile.emails?.[0]?.value
       user = await prisma.user.create({
         data: {
-          googleId: profile.id,
-          email,
-          name: profile.displayName || email?.split('@')[0]
+          name: profile.displayName || profile.emails[0].value,
+          email: profile.emails[0].value,
+          password: '', // OAuth users don't need password
+          role: 'user'
         }
       })
     }
-    done(null, user)
+    const token = generateToken({ id: user.id, email: user.email, role: user.role })
+    done(null, { user, token })
   } catch (err) {
-    done(err)
+    done(err, null)
   }
 }))
 
 passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: process.env.GITHUB_CALLBACK
+  callbackURL: `${process.env.BACKEND_URL}/auth/github/callback`
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    let user = await prisma.user.findUnique({ where: { githubId: profile.id } })
+    let email = profile.emails?.[0]?.value
+    if (!email) return done(new Error('GitHub email not found'), null)
+    let user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
-      const email = profile.emails?.[0]?.value || `${profile.username}@github.com`
       user = await prisma.user.create({
-        data: {
-          githubId: profile.id,
-          email,
-          name: profile.displayName || profile.username
-        }
+        data: { name: profile.username, email, password: '', role: 'user' }
       })
     }
-    done(null, user)
+    const token = generateToken({ id: user.id, email: user.email, role: user.role })
+    done(null, { user, token })
   } catch (err) {
-    done(err)
+    done(err, null)
   }
 }))
+
+passport.serializeUser((data, done) => done(null, data))
+passport.deserializeUser((data, done) => done(null, data))

@@ -1,33 +1,18 @@
-const API = import.meta.env.VITE_API_BASE || 'http://localhost:5045'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5045'
 
-export async function listInventories(q){
-  const url = new URL(API + '/api/inventories')
-  if(q) url.searchParams.set('q', q)
-  const res = await fetch(url.toString(), { credentials: 'include' })
-  if(!res.ok) throw await res.json()
+function authHeader() {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+export async function getAllInventories() {
+  const res = await fetch(`${API}/inventories`, { headers: authHeader() })
+  if (!res.ok) throw new Error('Failed to fetch inventories')
   return res.json()
 }
 
-export async function getInventory(id){
-  const res = await fetch(`${API}/api/inventories/${id}`, { credentials: 'include' })
-  if(!res.ok) throw await res.json()
-  return res.json()
-}
-
-export async function createInventory(payload, token){
-  const res = await fetch(`${API}/api/inventories`, {
-    method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-    body: JSON.stringify(payload)
-  })
-  if(!res.ok) throw await res.json()
-  return res.json()
-}
-
-export async function updateInventory(id,payload,token){
-  const res = await fetch(`${API}/api/inventories/${id}`, {
-    method:'PUT', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-    body: JSON.stringify(payload)
-  })
-  if(!res.ok) throw await res.json()
+export async function getInventoryById(id) {
+  const res = await fetch(`${API}/inventories/${id}`, { headers: authHeader() })
+  if (!res.ok) throw new Error('Inventory not found')
   return res.json()
 }

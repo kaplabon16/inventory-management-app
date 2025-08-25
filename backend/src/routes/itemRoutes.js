@@ -1,11 +1,7 @@
 import express from 'express'
-import { createItem, updateItem, likeItem } from '../controllers/itemController.js'
-import { protect } from '../middleware/authMiddleware.js'
+import { getItemById } from '../controllers/itemController.js'
+import { authMiddleware } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
-
-router.post('/', protect, createItem)
-router.put('/:id', protect, updateItem)
-router.put('/like/:id', protect, likeItem)
-
+router.get('/:id', authMiddleware, getItemById)
 export default router

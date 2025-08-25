@@ -1,9 +1,11 @@
 import jwt from 'jsonwebtoken'
 
-export function generateToken(user) {
-  return jwt.sign({ id: user.id, isAdmin: user.isAdmin }, process.env.JWT_SECRET || 'jwt-secret', { expiresIn: '7d' })
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey'
+
+export function generateToken(payload, expiresIn = '7d') {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn })
 }
 
 export function verifyToken(token) {
-  return jwt.verify(token, process.env.JWT_SECRET || 'jwt-secret')
+  return jwt.verify(token, JWT_SECRET)
 }

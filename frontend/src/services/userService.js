@@ -5,8 +5,8 @@ function authHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-export async function getItemById(id) {
-  const res = await fetch(`${API}/items/${id}`, { headers: authHeader() })
-  if (!res.ok) throw new Error('Item not found')
+export async function getAllUsers() {
+  const res = await fetch(`${API}/users`, { headers: authHeader() })
+  if (!res.ok) throw new Error('Failed to fetch users')
   return res.json()
 }

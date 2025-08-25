@@ -1,12 +1,9 @@
 import express from 'express'
-import { createInventory, updateInventory, getInventory, searchInventory } from '../controllers/inventoryController.js'
-import { protect } from '../middleware/authMiddleware.js'
+import { getAllInventories, getInventoryById, createInventory } from '../controllers/inventoryController.js'
+import { authMiddleware } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
-
-router.post('/', protect, createInventory)
-router.put('/:id', protect, updateInventory)
-router.get('/:id', getInventory)
-router.get('/', searchInventory)
-
+router.get('/', authMiddleware, getAllInventories)
+router.get('/:id', authMiddleware, getInventoryById)
+router.post('/', authMiddleware, createInventory)
 export default router

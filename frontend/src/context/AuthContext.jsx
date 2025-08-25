@@ -1,37 +1,56 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import axios from 'axios'
+import { createContext, useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import authService from '../services/authService.js'
 
-const AuthContext = createContext()
+export const AuthContext = createContext()
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [token, setToken] = useState(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // Check if OAuth token exists in URL
+    const params = new URLSearchParams(window.location.search)
+    const oauthToken = params.get('token')
+    if (oauthToken) {
+      localStorage.setItem('token', oauthToken)
+      setToken(oauthToken)
+      authService.getProfile(oauthToken)
+        .then(res => setUser(res.data))
+        .catch(() => localStorage.removeItem('token'))
+      navigate('/') // remove ?token= from URL
+      window.history.replaceState({}, document.title, '/')
+    } else {
+      const storedToken = localStorage.getItem('token')
+      if (storedToken) {
+        setToken(storedToken)
+        authService.getProfile(storedToken)
+          .then(res => setUser(res.data))
+          .catch(() => {
+            localStorage.removeItem('token')
+            setToken(null)
+          })
+      }
+    }
+  }, [])
 
   const login = async (email, password) => {
-    const res = await axios.post('/auth/login', { email, password }, { withCredentials:true })
+    const res = await authService.login(email, password)
     setUser(res.data.user)
+    setToken(res.data.token)
+    localStorage.setItem('token', res.data.token)
   }
 
-  const logout = async () => {
-    await axios.post('/auth/logout', {}, { withCredentials:true })
+  const logout = () => {
     setUser(null)
+    setToken(null)
+    localStorage.removeItem('token')
   }
 
-  const startOAuth = provider => {
-    window.location.href = `/auth/${provider}`
-  }
-
-  const oauthCallback = async () => {
-    const res = await axios.get('/auth/oauth/callback', { withCredentials:true })
-    setUser(res.data.user)
-  }
-
-  useEffect(()=>{
-    axios.get('/auth/me', { withCredentials:true })
-      .then(res=>setUser(res.data.user))
-      .catch(()=>setUser(null))
-  },[])
-
-  return <AuthContext.Provider value={{ user, login, logout, startOAuth, oauthCallback }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, token, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
-
-export const useAuth = () => useContext(AuthContext)

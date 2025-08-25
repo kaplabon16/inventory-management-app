@@ -1,16 +1,18 @@
-export async function protect(req, res, next) {
-  try {
-    if (req.isAuthenticated && req.isAuthenticated()) {
-      if (req.user && req.user.blocked) return res.status(401).json({ message: 'User blocked' })
-      return next()
-    }
-    return res.status(401).json({ message: 'Not authorized' })
-  } catch (err) {
-    next(err)
-  }
-}
+import jwt from 'jsonwebtoken'
 
-export function admin(req, res, next) {
-  if (req.user && req.user.isAdmin) return next()
-  return res.status(403).json({ message: 'Admin only' })
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey'
+
+export function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized' })
+  }
+
+  const token = authHeader.split(' ')[1]
+  try {
+    req.user = jwt.verify(token, JWT_SECRET)
+    next()
+  } catch {
+    return res.status(401).json({ message: 'Invalid token' })
+  }
 }

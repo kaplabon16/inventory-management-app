@@ -1,14 +1,20 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const LanguageContext = createContext()
 
-export function LanguageProvider({ children }){
+export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('en')
-  return (
-    <LanguageContext.Provider value={{language, setLanguage}}>
-      {children}
-    </LanguageContext.Provider>
-  )
+
+  useEffect(() => {
+    const saved = localStorage.getItem('language')
+    if (saved) setLanguage(saved)
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('language', language)
+  }, [language])
+
+  return <LanguageContext.Provider value={{ language, setLanguage }}>{children}</LanguageContext.Provider>
 }
 
-export const useLanguage = ()=> useContext(LanguageContext)
+export const useLanguage = () => useContext(LanguageContext)

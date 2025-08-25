@@ -1,6 +1,13 @@
 import React from 'react'
-import { marked } from 'marked'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
-export default function MarkdownRenderer({ text='' }){
-  return <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{__html: marked.parse(text || '')}} />
+export default function MarkdownRenderer({ content }) {
+  return (
+    <div className="prose prose-sm sm:prose lg:prose-lg max-w-full">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {content || ''}
+      </ReactMarkdown>
+    </div>
+  )
 }

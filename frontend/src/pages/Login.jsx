@@ -1,37 +1,35 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useContext } from 'react'
+import { AuthContext } from '../context/AuthContext.jsx'
 
-export default function Login() {
-  const { login, startOAuth } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
+const Login = () => {
+  const { login } = useContext(AuthContext)
 
-  const handleSubmit = async e => {
+  const handleOAuth = (provider) => {
+    window.location.href = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5045'}/auth/${provider}`
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    try {
-      await login(email,password)
-      navigate('/')
-    } catch(err) {
-      setError(err.response?.data?.message || 'Login failed')
-    }
+    const email = e.target.email.value
+    const password = e.target.password.value
+    try { await login(email, password) } 
+    catch(err) { console.error(err) }
   }
 
   return (
-    <div className="container mx-auto mt-20 max-w-md p-6 border rounded-lg shadow-md bg-white dark:bg-gray-800">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Login</h2>
-      {error && <div className="mb-2 text-red-500 text-sm">{error}</div>}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 focus:ring focus:ring-blue-200" required />
-        <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 focus:ring focus:ring-blue-200" required />
-        <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500">Login</button>
+    <div className="max-w-md mx-auto mt-20 p-4 border rounded">
+      <h2 className="text-2xl font-bold mb-4">Login</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <input type="email" name="email" placeholder="Email" className="p-2 border rounded"/>
+        <input type="password" name="password" placeholder="Password" className="p-2 border rounded"/>
+        <button type="submit" className="bg-blue-600 text-white p-2 rounded">Login</button>
       </form>
-      <div className="mt-4 flex gap-2">
-        <button onClick={()=>startOAuth('github')} className="px-3 py-2 bg-gray-800 text-white rounded-md w-full">GitHub</button>
-        <button onClick={()=>startOAuth('google')} className="px-3 py-2 bg-red-500 text-white rounded-md w-full">Google</button>
+      <div className="mt-4 flex flex-col gap-2">
+        <button onClick={() => handleOAuth('google')} className="bg-red-600 text-white p-2 rounded">Login with Google</button>
+        <button onClick={() => handleOAuth('github')} className="bg-gray-800 text-white p-2 rounded">Login with GitHub</button>
       </div>
     </div>
   )
 }
+
+export default Login
