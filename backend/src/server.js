@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import session from 'express-session'
 import passport from 'passport'
 import { Strategy as GitHubStrategy } from 'passport-github2'
@@ -13,11 +12,18 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://your-frontend.vercel.a
 
 app.use(express.json())
 
-// CORS setup
-app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true,
-}))
+// Manual CORS setup (no cors package)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", FRONTEND_URL)
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+  res.header("Access-Control-Allow-Credentials", "true")
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200)
+  }
+  next()
+})
 
 // Session setup
 app.use(session({
